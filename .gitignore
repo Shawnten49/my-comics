@@ -1,0 +1,50 @@
+.DS_Store
+.pip-cache/
+.env
+.env.*
+!.env.example
+
+# Runtime state, logs, locks, TLS material and download results
+run/
+*.log
+*.pid
+
+# Downloaded media and bulk-data folders
+download/
+download-old/
+
+# SQLite databases and migration backups
+comic_web/*.db
+comic_web/*.db-*
+comic_web/*.bak
+
+# User data and local preferences
+comic_web/favorites.json
+comic_web/settings.json
+completed.txt
+albums*.txt
+download-old_urls.txt
+temp.txt
+
+# Secrets and browser session material
+secrets/
+*.pem
+*.key
+*.p12
+cookies*.json
+*storage-state*.json
+playwright-profile/
+chrome-profile/
+.auth/
+
+# Python caches and local build artifacts
+__pycache__/
+*.py[cod]
+*.whl
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local editor and OS files
+.idea/
+.vscode/

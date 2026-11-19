@@ -1,0 +1,764 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>漫画管理 · 本地漫画库</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/manage.css">
+</head>
+<body class="manage-body">
+  <header class="topbar">
+    <a id="backButton" class="icon-button" href="/" aria-label="返回首页">←</a>
+    <a class="brand" href="/">
+      <span class="brand-mark">漫</span>
+      <span>本地漫画库</span>
+    </a>
+    <nav class="manage-nav" aria-label="漫画管理导航">
+      <a id="booksNav" href="/manage/books">漫画管理</a>
+      <a id="downloadsNav" href="/manage/downloads">下载管理</a>
+      <a id="migrationsNav" href="/manage/migrations">迁移记录</a>
+      <a id="usersNav" href="/manage/users">用户管理</a>
+      <a id="settingsNav" href="/manage/settings">系统设置</a>
+    </nav>
+    <div class="top-actions">
+      <button id="manageAuthButton" class="text-button" type="button">退出</button>
+    </div>
+  </header>
+
+  <main class="manage-main">
+    <section id="downloadsView" class="manage-view hidden">
+      <div class="manage-heading">
+        <div>
+          <p class="eyebrow">DOWNLOAD MANAGEMENT</p>
+          <h1>下载管理</h1>
+          <p class="summary">普通下载和批量下载分别管理，查询分页状态互不影响。</p>
+        </div>
+        <div class="heading-actions">
+          <button id="openDownloadDialog" class="text-button accent-button" type="button">
+            建立下载任务
+          </button>
+          <a id="openBatchCreate" class="text-button accent-button hidden" href="/manage/downloads/batch/new">
+            建立批量下载
+          </a>
+        </div>
+      </div>
+
+      <div id="downloadTabs" class="download-tabs" role="tablist" aria-label="下载任务类型">
+        <a id="singleDownloadTab" class="download-tab active" href="/manage/downloads" role="tab" aria-selected="true" aria-controls="singleDownloadsPanel" tabindex="0">
+          普通下载
+        </a>
+        <a id="batchDownloadTab" class="download-tab" href="/manage/downloads/batch" role="tab" aria-selected="false" aria-controls="batchTasksPanel" tabindex="-1">
+          批量下载
+        </a>
+        <a id="incrementalPullTab" class="download-tab" href="/manage/downloads/incremental" role="tab" aria-selected="false" aria-controls="incrementalPullPanel" tabindex="-1">
+          增量拉取
+        </a>
+      </div>
+
+      <section id="singleDownloadsPanel" role="tabpanel" aria-labelledby="singleDownloadTab">
+        <div class="manage-toolbar">
+          <input id="downloadSearch" type="search" placeholder="搜索下载 ID、漫画 ID、名称、URL 或目录">
+          <select id="downloadStatusFilter" aria-label="下载状态">
+            <option value="">全部状态</option>
+            <option value="pending">等待下载</option>
+            <option value="running">下载中</option>
+            <option value="completed">已完成</option>
+            <option value="failed">失败</option>
+            <option value="interrupted">已中断</option>
+          </select>
+          <button id="downloadRefreshButton" class="text-button" type="button">刷新</button>
+        </div>
+        <p id="downloadSummary" class="summary tab-panel-summary">正在读取普通下载记录……</p>
+
+        <div class="table-shell">
+          <table class="data-table download-tasks-table">
+            <thead>
+              <tr>
+                <th>下载 ID</th>
+                <th>漫画 ID</th>
+                <th>漫画名称</th>
+                <th>下载 URL</th>
+                <th>状态</th>
+                <th>进度</th>
+                <th>消息</th>
+                <th>创建时间</th>
+                <th>完成时间</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="downloadTasksBody"></tbody>
+          </table>
+        </div>
+        <p id="downloadTasksMessage" class="view-message hidden"></p>
+        <nav id="downloadPagination" class="pagination manage-pagination hidden"></nav>
+      </section>
+
+      <section id="batchTasksPanel" class="hidden" role="tabpanel" aria-labelledby="batchDownloadTab">
+        <div class="manage-toolbar">
+          <input id="batchTaskSearch" type="search" placeholder="搜索批次、漫画 ID、章节、URL 或错误消息">
+          <select id="batchTaskStatusFilter" aria-label="批量任务状态">
+            <option value="">全部状态</option>
+            <option value="pending">等待下载</option>
+            <option value="running">下载中</option>
+            <option value="completed">已完成</option>
+            <option value="skipped_existing">已存在</option>
+            <option value="failed">失败</option>
+            <option value="interrupted">已中断</option>
+          </select>
+          <select id="batchTaskPageSize" aria-label="每页任务数">
+            <option value="30">每页 30 条</option>
+            <option value="50">每页 50 条</option>
+            <option value="100">每页 100 条</option>
+          </select>
+          <button id="batchTaskRefreshButton" class="text-button" type="button">刷新</button>
+        </div>
+        <p id="batchTaskSummary" class="summary tab-panel-summary">正在读取批量下载记录……</p>
+
+        <div class="table-shell">
+          <table class="data-table batch-tasks-table">
+            <thead>
+              <tr>
+                <th>任务 ID</th>
+                <th>批次号</th>
+                <th>漫画</th>
+                <th>章节</th>
+                <th>下载 URL</th>
+                <th>状态</th>
+                <th>进度</th>
+                <th>消息</th>
+                <th>创建时间</th>
+                <th>完成时间</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="batchTasksBody"></tbody>
+          </table>
+        </div>
+        <p id="batchTasksMessage" class="view-message hidden"></p>
+        <nav id="batchTaskPagination" class="pagination manage-pagination hidden"></nav>
+      </section>
+
+      <section id="incrementalPullPanel" class="hidden" role="tabpanel" aria-labelledby="incrementalPullTab">
+        <div class="manage-toolbar">
+          <input id="incrementalSearch" type="search" placeholder="搜索漫画 ID、漫画名称或错误消息">
+          <select id="incrementalComicStatusFilter" aria-label="漫画连载状态">
+            <option value="">全部漫画状态</option>
+            <option value="0">连载中</option>
+            <option value="1">已完结</option>
+          </select>
+          <select id="incrementalStateFilter" aria-label="增量执行状态">
+            <option value="">全部执行状态</option>
+            <option value="idle">空闲</option>
+            <option value="checking">检查中</option>
+            <option value="creating_tasks">建立任务</option>
+            <option value="downloading">下载中</option>
+            <option value="error">错误</option>
+          </select>
+          <select id="incrementalPageSize" aria-label="每页增量任务数">
+            <option value="30">每页 30 条</option>
+            <option value="50">每页 50 条</option>
+            <option value="100">每页 100 条</option>
+          </select>
+          <button id="incrementalRefreshButton" class="text-button" type="button">刷新</button>
+        </div>
+        <p id="incrementalSummary" class="summary tab-panel-summary">正在读取增量拉取任务……</p>
+
+        <div class="table-shell">
+          <table class="data-table incremental-tasks-table">
+            <thead>
+              <tr>
+                <th>增量 ID</th>
+                <th>漫画 ID</th>
+                <th>漫画名称</th>
+                <th>当前进度</th>
+                <th>最新已知</th>
+                <th>待处理</th>
+                <th>漫画状态</th>
+                <th>执行状态</th>
+                <th>最近检查</th>
+                <th>最近拉取</th>
+                <th>最近执行</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="incrementalTasksBody"></tbody>
+          </table>
+        </div>
+        <p id="incrementalTasksMessage" class="view-message hidden"></p>
+        <nav id="incrementalPagination" class="pagination manage-pagination hidden"></nav>
+      </section>
+    </section>
+
+    <section id="batchCreateView" class="manage-view hidden">
+      <div class="manage-heading">
+        <div>
+          <p class="eyebrow">NEW BATCH DOWNLOAD</p>
+          <h1>建立批量下载</h1>
+          <p class="summary">
+            先预分析章节；确认后由单线程按章节顺序下载，失败章节可独立续传。
+          </p>
+        </div>
+        <a class="text-button" href="/manage/downloads/batch">返回批量下载</a>
+      </div>
+
+      <section class="form-panel batch-analyze-panel">
+        <div class="step-heading">
+          <span>1</span>
+          <div>
+            <h2>预分析系列章节</h2>
+            <p>当前支持小爱漫画系列页，例如 https://www.xiaoaimanhua.com/18427。</p>
+          </div>
+        </div>
+        <div class="batch-form-grid">
+          <label>
+            漫画 ID
+            <input id="batchParentId" type="text" inputmode="numeric" autocomplete="off" placeholder="18427">
+          </label>
+          <label>
+            漫画名称
+            <input id="batchComicName" type="text" autocomplete="off" placeholder="海贼王">
+          </label>
+          <label class="batch-url-field">
+            系列 URL
+            <input id="batchSeriesUrl" type="url" autocomplete="off" placeholder="https://www.xiaoaimanhua.com/18427">
+          </label>
+          <label>
+            漫画可见性
+            <select id="batchAccessLevel">
+              <option value="0">0 · 所有用户</option>
+              <option value="1">1 · 登录用户</option>
+              <option value="2">2 · 管理员</option>
+            </select>
+          </label>
+          <button id="analyzeBatchButton" class="text-button accent-button" type="button">
+            预分析
+          </button>
+        </div>
+        <p id="batchAnalyzeMessage" class="form-message"></p>
+      </section>
+
+      <section id="batchPreviewPanel" class="form-panel hidden">
+        <div class="step-heading">
+          <span>2</span>
+          <div>
+            <h2>选择要下载的章节</h2>
+            <p id="batchPreviewSummary">尚未预分析。</p>
+          </div>
+        </div>
+        <div class="manage-toolbar compact-toolbar">
+          <input id="batchPreviewSearch" type="search" placeholder="搜索章节键、名称或 URL">
+          <select id="batchPreviewPageSize" aria-label="每页章节数">
+            <option value="50">每页 50 章</option>
+            <option value="100">每页 100 章</option>
+            <option value="200">每页 200 章</option>
+          </select>
+          <button id="clearBatchSelectionButton" class="text-button" type="button">清空选择</button>
+        </div>
+        <div class="table-shell">
+          <table class="data-table batch-preview-table">
+            <thead>
+              <tr>
+                <th class="checkbox-column">
+                  <label class="select-all-current">
+                    <input id="batchSelectPageCheckbox" type="checkbox" title="全选当前页可下载章节">
+                    <span>全选</span>
+                  </label>
+                </th>
+                <th>顺序</th>
+                <th>章节键</th>
+                <th>章节名称</th>
+                <th>章节 URL</th>
+                <th>状态</th>
+              </tr>
+            </thead>
+            <tbody id="batchPreviewBody"></tbody>
+          </table>
+        </div>
+        <p id="batchPreviewMessage" class="view-message hidden"></p>
+        <nav id="batchPreviewPagination" class="pagination manage-pagination hidden"></nav>
+        <div class="confirm-actions batch-confirm-actions">
+          <span id="batchSelectionSummary">已选择 0 章。选择可跨分页保留。</span>
+          <button id="createBatchTasksButton" class="text-button accent-button" type="button">
+            确定并生成批量任务
+          </button>
+        </div>
+        <p id="batchCreateMessage" class="form-message"></p>
+      </section>
+    </section>
+
+    <section id="booksView" class="manage-view hidden">
+      <div class="manage-heading">
+        <div>
+          <p class="eyebrow">LIBRARY MANAGEMENT</p>
+          <h1>漫画管理</h1>
+          <p id="managedBooksSummary" class="summary">正在读取漫画记录……</p>
+        </div>
+        <div class="heading-actions">
+          <a class="text-button" href="/manage/deletions">删除任务记录</a>
+          <a class="text-button" href="/manage/migrations">查看迁移记录</a>
+        </div>
+      </div>
+
+      <div class="manage-toolbar">
+        <input id="managedBookSearch" type="search" placeholder="搜索标题、漫画 ID 或目录名">
+        <select id="managedStorageFilter" aria-label="存储位置">
+          <option value="">全部存储位置</option>
+          <option value="local">本地</option>
+          <option value="external">外盘</option>
+        </select>
+        <select id="managedStatusFilter" aria-label="漫画状态">
+          <option value="">全部状态</option>
+          <option value="available">可用</option>
+          <option value="external_offline">外盘未连接</option>
+          <option value="external_mismatch">外盘不匹配</option>
+          <option value="content_missing">文件缺失</option>
+          <option value="local_missing">本地缺失</option>
+          <option value="migrating">迁移中</option>
+        </select>
+      </div>
+
+      <div class="table-shell">
+        <table class="data-table managed-books-table">
+          <thead>
+            <tr>
+              <th>漫画 ID</th>
+              <th>漫画名称</th>
+              <th>页数</th>
+              <th>存储位置</th>
+              <th>访问权限</th>
+              <th>状态</th>
+              <th>更新时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="managedBooksBody"></tbody>
+        </table>
+      </div>
+      <p id="managedBooksMessage" class="view-message hidden"></p>
+      <nav id="managedBooksPagination" class="pagination manage-pagination hidden"></nav>
+    </section>
+
+    <section id="deleteChaptersView" class="manage-view hidden">
+      <div class="manage-heading">
+        <div>
+          <p class="eyebrow">DELETE CHAPTERS</p>
+          <h1 id="deleteChaptersTitle">删除章节</h1>
+          <p id="deleteChaptersSummary" class="summary">正在读取章节……</p>
+        </div>
+        <a id="deleteChaptersBack" class="text-button" href="/manage/books">返回漫画管理</a>
+      </div>
+      <div class="manage-toolbar">
+        <input id="deleteChapterSearch" type="search" placeholder="搜索章节名称或章节键">
+        <select id="deleteChapterStatusFilter" aria-label="章节文件状态">
+          <option value="">全部状态</option>
+          <option value="available">可用</option>
+          <option value="missing">文件缺失</option>
+        </select>
+        <select id="deleteChapterOrder" aria-label="章节顺序">
+          <option value="asc">正序</option>
+          <option value="desc">倒序</option>
+        </select>
+        <select id="deleteChapterPageSize" aria-label="每页章节数">
+          <option value="50">每页 50 话</option>
+          <option value="100">每页 100 话</option>
+          <option value="200">每页 200 话</option>
+        </select>
+      </div>
+      <div class="manage-toolbar compact-toolbar">
+        <span id="deleteChapterSelectionSummary">已选择 0 话</span>
+        <button id="deleteChapterSelectPage" class="text-button" type="button">全选当前页</button>
+        <button id="deleteChapterClearSelection" class="text-button" type="button">清空选择</button>
+        <button id="createChapterDeletion" class="text-button danger-action" type="button" disabled>生成删除任务</button>
+      </div>
+      <div class="table-shell">
+        <table class="data-table delete-chapters-table">
+          <thead>
+            <tr>
+              <th class="checkbox-column">选择</th>
+              <th>顺序</th>
+              <th>章节键</th>
+              <th>章节名称</th>
+              <th>页数</th>
+              <th>状态</th>
+            </tr>
+          </thead>
+          <tbody id="deleteChaptersBody"></tbody>
+        </table>
+      </div>
+      <p id="deleteChaptersMessage" class="view-message hidden"></p>
+      <nav id="deleteChaptersPagination" class="pagination manage-pagination hidden"></nav>
+    </section>
+
+    <section id="usersView" class="manage-view hidden">
+      <div class="manage-heading">
+        <div>
+          <p class="eyebrow">USER MANAGEMENT</p>
+          <h1>用户管理</h1>
+          <p class="summary">普通用户可收藏并访问登录用户漫画；管理员拥有全部权限。</p>
+        </div>
+      </div>
+      <section class="form-panel">
+        <div class="step-heading"><span>+</span><div><h2>创建用户</h2></div></div>
+        <div class="batch-form-grid">
+          <label>用户名<input id="newUsername" type="text" autocomplete="off"></label>
+          <label>密码<input id="newPassword" type="password" autocomplete="new-password"></label>
+          <label>角色<select id="newUserRole"><option value="user">普通用户</option><option value="admin">管理员</option></select></label>
+          <button id="createUserButton" class="text-button accent-button" type="button">创建</button>
+        </div>
+        <p id="createUserMessage" class="form-message"></p>
+      </section>
+      <div class="table-shell">
+        <table class="data-table">
+          <thead><tr><th>用户 ID</th><th>用户名</th><th>角色</th><th>状态</th><th>最近登录</th><th>创建时间</th><th>操作</th></tr></thead>
+          <tbody id="usersBody"></tbody>
+        </table>
+      </div>
+      <p id="usersMessage" class="view-message hidden"></p>
+    </section>
+
+    <section id="settingsView" class="manage-view hidden">
+      <div class="manage-heading">
+        <div>
+          <p class="eyebrow">SYSTEM SETTINGS</p>
+          <h1>系统设置</h1>
+          <p class="summary">敏感配置只保存哈希；路径配置修改后需要重启网站。</p>
+        </div>
+        <button id="settingsRefreshButton" class="text-button" type="button">刷新</button>
+      </div>
+      <div class="table-shell">
+        <table class="data-table settings-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>配置键</th>
+              <th>当前值</th>
+              <th>类型</th>
+              <th>说明</th>
+              <th>状态</th>
+              <th>更新时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="settingsBody"></tbody>
+        </table>
+      </div>
+      <p id="settingsMessage" class="view-message hidden"></p>
+    </section>
+
+    <section id="deletionsView" class="manage-view hidden">
+      <div class="manage-heading">
+        <div>
+          <p class="eyebrow">DELETION RECORDS</p>
+          <h1>删除任务记录</h1>
+          <p id="deletionSummary" class="summary">正在读取删除任务……</p>
+        </div>
+      </div>
+      <div class="manage-toolbar">
+        <input id="deletionSearch" type="search" placeholder="搜索批次、漫画、章节或错误消息">
+        <select id="deletionStatusFilter" aria-label="删除任务状态">
+          <option value="">全部状态</option>
+          <option value="pending">等待删除</option>
+          <option value="waiting_dependency">等待前置任务</option>
+          <option value="running">删除中</option>
+          <option value="completed">已完成</option>
+          <option value="completed_with_warning">完成但有警告</option>
+          <option value="failed">失败</option>
+          <option value="blocked_external">外盘未连接</option>
+          <option value="interrupted">已中断</option>
+        </select>
+        <select id="deletionTypeFilter" aria-label="删除任务类型">
+          <option value="">全部类型</option>
+          <option value="single_book">单本漫画</option>
+          <option value="chapter">章节</option>
+          <option value="series_finalize">系列最终清理</option>
+        </select>
+        <button id="deletionRefreshButton" class="text-button" type="button">刷新</button>
+      </div>
+      <div class="table-shell">
+        <table class="data-table deletion-tasks-table">
+          <thead>
+            <tr>
+              <th>删除 ID</th>
+              <th>批次号</th>
+              <th>类型</th>
+              <th>漫画</th>
+              <th>章节</th>
+              <th>存储</th>
+              <th>目标路径</th>
+              <th>状态</th>
+              <th>进度</th>
+              <th>消息</th>
+              <th>创建时间</th>
+              <th>完成时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="deletionTasksBody"></tbody>
+        </table>
+      </div>
+      <p id="deletionTasksMessage" class="view-message hidden"></p>
+      <nav id="deletionPagination" class="pagination manage-pagination hidden"></nav>
+    </section>
+
+    <section id="migrationsView" class="manage-view hidden">
+      <div class="manage-heading">
+        <div>
+          <p class="eyebrow">MIGRATION HISTORY</p>
+          <h1>迁移记录</h1>
+          <p id="migrationSummary" class="summary">正在读取迁移记录……</p>
+        </div>
+        <a class="text-button accent-button" href="/manage/migrations/new">迁移到外盘</a>
+      </div>
+
+      <div class="manage-toolbar">
+        <input id="migrationSearch" type="search" placeholder="搜索漫画 ID、名称、批次号、原路径或迁移路径">
+        <select id="migrationStatusFilter" aria-label="迁移状态">
+          <option value="">全部状态</option>
+          <option value="queued">等待迁移</option>
+          <option value="migrating">迁移中</option>
+          <option value="completed">已完成</option>
+          <option value="completed_with_warning">完成但有警告</option>
+          <option value="failed">失败</option>
+          <option value="blocked_external">外盘未连接</option>
+          <option value="interrupted">已中断</option>
+        </select>
+        <button id="migrationRefreshButton" class="text-button" type="button">刷新</button>
+      </div>
+
+      <div class="table-shell">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>迁移 ID</th>
+              <th>漫画 ID</th>
+              <th>漫画名称</th>
+              <th>迁移批次号</th>
+              <th>原路径</th>
+              <th>迁移路径</th>
+              <th>迁移状态</th>
+              <th>消息</th>
+              <th>创建时间</th>
+              <th>迁移时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="migrationRecordsBody"></tbody>
+        </table>
+      </div>
+      <p id="migrationRecordsMessage" class="view-message hidden"></p>
+      <nav id="migrationPagination" class="pagination manage-pagination hidden"></nav>
+    </section>
+
+    <section id="newMigrationView" class="manage-view hidden">
+      <div class="manage-heading">
+        <div>
+          <p class="eyebrow">NEW MIGRATION</p>
+          <h1>正式迁移</h1>
+          <p class="summary">
+            复制完成并通过文件清单与 SHA-256 校验后，才会删除本地源目录。
+          </p>
+        </div>
+        <a class="text-button" href="/manage/migrations">取消</a>
+      </div>
+
+      <section class="form-panel">
+        <div class="step-heading">
+          <span>1</span>
+          <div>
+            <h2>选择外盘路径</h2>
+            <p>路径成功后保存在当前浏览器，下次进入自动恢复。</p>
+          </div>
+        </div>
+        <div class="path-row">
+          <input id="migrationDestination" type="text" placeholder="/Volumes/Comics" autocomplete="off">
+          <button id="pickDirectoryButton" class="text-button" type="button">选择目录</button>
+          <button id="validateDirectoryButton" class="text-button" type="button">检测路径</button>
+        </div>
+        <p id="destinationMessage" class="form-message"></p>
+      </section>
+
+      <section class="form-panel">
+        <div class="step-heading">
+          <span>2</span>
+          <div>
+            <h2>选择漫画</h2>
+            <p id="selectionSummary">已选择 0 本。选择可跨分页保留。</p>
+          </div>
+        </div>
+        <div class="manage-toolbar compact-toolbar">
+          <input id="migrationBookSearch" type="search" placeholder="搜索本地漫画">
+          <button id="clearSelectionButton" class="text-button" type="button">清空选择</button>
+        </div>
+        <div class="table-shell migration-book-table">
+          <table class="data-table selectable-table">
+            <thead>
+              <tr>
+                <th class="checkbox-column">
+                  <label class="select-all-current">
+                    <input id="selectPageCheckbox" type="checkbox" title="全选当前页">
+                    <span>全选</span>
+                  </label>
+                </th>
+                <th>漫画 ID</th>
+                <th>漫画名称</th>
+                <th>页数</th>
+                <th>状态</th>
+              </tr>
+            </thead>
+            <tbody id="migrationBooksBody"></tbody>
+          </table>
+        </div>
+        <p id="migrationBooksMessage" class="view-message hidden"></p>
+        <nav id="migrationBooksPagination" class="pagination manage-pagination hidden"></nav>
+      </section>
+
+      <section class="form-panel migration-confirm-panel">
+        <div class="step-heading">
+          <span>3</span>
+          <div>
+            <h2>确认并生成迁移记录</h2>
+            <p>后台只有一个迁移线程，会按记录顺序逐本处理。</p>
+          </div>
+        </div>
+        <label class="code-field">
+          验证码
+          <input id="migrationCode" type="password" autocomplete="off">
+        </label>
+        <div class="confirm-actions">
+          <a class="text-button" href="/manage/books">返回漫画管理</a>
+          <button id="createMigrationButton" class="text-button danger-action" type="button">
+            正式迁移
+          </button>
+        </div>
+        <p id="createMigrationMessage" class="form-message"></p>
+      </section>
+    </section>
+
+  </main>
+
+  <dialog id="downloadDialog" class="cover-dialog download-dialog">
+    <div class="dialog-heading">
+      <div>
+        <p class="eyebrow">NEW DOWNLOAD</p>
+        <h2>建立下载任务</h2>
+      </div>
+      <button id="closeDownloadDialog" class="icon-button" type="button" aria-label="关闭">×</button>
+    </div>
+    <div class="download-form">
+      <label>
+        漫画 ID
+        <input id="downloadComicId" type="text" inputmode="numeric" autocomplete="off">
+      </label>
+      <label>
+        下载 URL
+        <input id="downloadUrl" type="url" autocomplete="off">
+      </label>
+      <label>
+        漫画可见性
+        <select id="downloadAccessLevel">
+          <option value="0">0 · 所有用户</option>
+          <option value="1">1 · 登录用户</option>
+          <option value="2">2 · 管理员</option>
+        </select>
+      </label>
+    </div>
+    <p id="downloadDialogMessage" class="form-message"></p>
+    <div class="confirm-actions">
+      <button id="cancelDownloadDialog" class="text-button" type="button">取消</button>
+      <button id="confirmDownloadTask" class="text-button accent-button" type="button">确定</button>
+    </div>
+  </dialog>
+
+  <dialog id="downloadRootErrorDialog" class="cover-dialog download-root-error-dialog">
+    <div class="dialog-heading">
+      <div>
+        <p class="eyebrow">DOWNLOAD ROOT ERROR</p>
+        <h2>下载目录不可用</h2>
+      </div>
+      <button id="closeDownloadRootError" class="icon-button" type="button" aria-label="关闭">×</button>
+    </div>
+    <p id="downloadRootErrorMessage" class="deletion-warning"></p>
+    <p id="downloadRootErrorPath" class="mono-cell"></p>
+    <div class="confirm-actions">
+      <button id="cancelDownloadRootError" class="text-button" type="button">关闭</button>
+      <a href="/manage/settings" class="text-button accent-button">前往系统设置</a>
+    </div>
+  </dialog>
+
+  <dialog id="incrementalDialog" class="cover-dialog incremental-dialog">
+    <div class="dialog-heading">
+      <div>
+        <p class="eyebrow">INCREMENTAL PULL</p>
+        <h2 id="incrementalDialogTitle">增量拉取</h2>
+      </div>
+      <button id="closeIncrementalDialog" class="icon-button" type="button" aria-label="关闭">×</button>
+    </div>
+    <p id="incrementalDialogSummary" class="summary"></p>
+    <div id="incrementalDialogTableShell" class="table-shell hidden">
+      <table class="data-table incremental-preview-table">
+        <thead>
+          <tr>
+            <th class="checkbox-column">
+              <label class="select-all-current">
+                <input id="incrementalSelectPageCheckbox" type="checkbox" title="全选新章节">
+                <span>全选</span>
+              </label>
+            </th>
+            <th>顺序</th>
+            <th>章节键</th>
+            <th>章节名称</th>
+            <th>章节 URL</th>
+          </tr>
+        </thead>
+        <tbody id="incrementalPreviewBody"></tbody>
+      </table>
+    </div>
+    <p id="incrementalDialogMessage" class="form-message"></p>
+    <div class="confirm-actions">
+      <button id="cancelIncrementalDialog" class="text-button" type="button">取消</button>
+      <button id="confirmIncrementalPull" class="text-button accent-button" type="button">确定</button>
+    </div>
+  </dialog>
+
+  <dialog id="deletionDialog" class="cover-dialog deletion-dialog">
+    <div class="dialog-heading">
+      <div>
+        <p class="eyebrow">CONFIRM DELETION</p>
+        <h2 id="deletionDialogTitle">确认删除</h2>
+      </div>
+      <button id="closeDeletionDialog" class="icon-button" type="button" aria-label="关闭">×</button>
+    </div>
+    <p id="deletionDialogSummary" class="deletion-warning"></p>
+    <label class="code-field">
+      校验码
+      <input id="deletionVerificationCode" type="password" autocomplete="off">
+    </label>
+    <p id="deletionDialogMessage" class="form-message"></p>
+    <div class="confirm-actions">
+      <button id="cancelDeletionDialog" class="text-button" type="button">取消</button>
+      <button id="confirmDeletionDialog" class="text-button danger-action" type="button">确定删除</button>
+    </div>
+  </dialog>
+
+  <dialog id="recrawlDialog" class="cover-dialog recrawl-dialog">
+    <div class="dialog-heading">
+      <div>
+        <p class="eyebrow">RECRAWL</p>
+        <h2>确认重新拉取</h2>
+      </div>
+      <button id="closeRecrawlDialog" class="icon-button" type="button" aria-label="关闭">×</button>
+    </div>
+    <p id="recrawlDialogSummary" class="deletion-warning"></p>
+    <p id="recrawlDialogMessage" class="form-message"></p>
+    <div class="confirm-actions">
+      <button id="cancelRecrawlDialog" class="text-button" type="button">取消</button>
+      <button id="confirmRecrawlDialog" class="text-button accent-button" type="button">确定</button>
+    </div>
+  </dialog>
+
+  <div id="toast" class="toast hidden" role="status"></div>
+  <script src="/static/manage.js" defer></script>
+</body>
+</html>

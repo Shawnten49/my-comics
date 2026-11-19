@@ -1,0 +1,8 @@
+playwright>=1.45,<2
+requests>=2.31,<3
+urllib3>=1.26,<2
+pyautogui>=0.9.54,<1
+Pillow>=9.2,<12
+pyobjc-core<12; sys_platform == "darwin"
+pyobjc-framework-Cocoa<12; sys_platform == "darwin"
+pyobjc-framework-Quartz<12; sys_platform == "darwin"

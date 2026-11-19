@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>本地漫画库</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a id="backButton" class="icon-button hidden" href="/" aria-label="返回首页">←</a>
+    <a class="brand" href="/">
+      <span class="brand-mark">漫</span>
+      <span>本地漫画库</span>
+    </a>
+
+    <button id="favoriteToggleButton" class="text-button favorite-toggle hidden" type="button">♡ 添加收藏</button>
+
+    <button id="categoryButton" class="text-button category-button" type="button">分类</button>
+    <a id="favoritesButton" class="text-button favorites-button" href="/favorites">
+      收藏 <span id="favoriteCount">0</span>
+    </a>
+
+    <div id="searchBox" class="search-box">
+      <input id="searchInput" type="search" placeholder="搜索漫画名称或 ID" autocomplete="off">
+    </div>
+
+    <div class="top-actions">
+      <span id="readerProgress" class="reader-progress hidden"></span>
+      <a id="manageButton" class="text-button" href="/manage/books">漫画管理</a>
+      <a id="authButton" class="text-button" href="/login">登录</a>
+    </div>
+  </header>
+
+  <main>
+    <section id="homeView" class="home-view">
+      <div class="hero">
+        <p id="librarySummary" class="summary">正在读取本地漫画目录……</p>
+      </div>
+
+      <div id="bookGrid" class="book-grid" aria-live="polite"></div>
+      <p id="homeMessage" class="view-message hidden"></p>
+      <nav id="pagination" class="pagination hidden" aria-label="漫画列表分页">
+        <div id="paginationButtons" class="pagination-buttons"></div>
+        <span id="paginationInfo" class="pagination-info"></span>
+        <label class="page-size-label">
+          每页
+          <select id="pageSizeSelect">
+            <option value="24">24</option>
+            <option value="30" selected>30</option>
+            <option value="48">48</option>
+            <option value="60">60</option>
+          </select>
+        </label>
+      </nav>
+    </section>
+
+    <section id="seriesView" class="series-view hidden">
+      <div class="series-hero">
+        <img id="seriesCover" class="series-cover" alt="">
+        <div class="series-info">
+          <p class="eyebrow">CHAPTERED COMIC</p>
+          <h1 id="seriesTitle">正在加载……</h1>
+          <p id="seriesMeta" class="summary"></p>
+          <div id="seriesCategories" class="series-categories"></div>
+        </div>
+      </div>
+
+      <div class="series-toolbar">
+        <input id="chapterSearch" type="search" placeholder="搜索章节名称或数字">
+        <select id="chapterOrder" aria-label="章节排序">
+          <option value="asc">正序</option>
+          <option value="desc">倒序</option>
+        </select>
+        <select id="chapterStatus" aria-label="章节状态">
+          <option value="">全部章节</option>
+          <option value="available">可阅读</option>
+          <option value="missing">文件缺失</option>
+        </select>
+        <select id="chapterPageSize" aria-label="每页章节数">
+          <option value="50" selected>每页 50 话</option>
+          <option value="100">每页 100 话</option>
+          <option value="200">每页 200 话</option>
+        </select>
+      </div>
+      <div id="chapterList" class="chapter-list" aria-live="polite"></div>
+      <p id="seriesMessage" class="view-message hidden"></p>
+      <nav id="chapterPagination" class="pagination hidden" aria-label="章节分页"></nav>
+    </section>
+
+    <section id="readerView" class="reader-view hidden">
+      <div class="reader-heading">
+        <p class="eyebrow">READER</p>
+        <h1 id="readerTitle">正在加载……</h1>
+        <p id="readerMeta" class="summary"></p>
+        <div id="readerChapterNav" class="reader-chapter-nav hidden">
+          <a id="previousChapterButton" class="text-button" href="#">上一话</a>
+          <a id="nextChapterButton" class="text-button" href="#">下一话</a>
+        </div>
+      </div>
+
+      <div id="pageStream" class="page-stream" aria-live="polite"></div>
+      <div id="readerSentinel" class="sentinel reader-sentinel" aria-hidden="true"></div>
+      <p id="readerMessage" class="view-message hidden"></p>
+      <button id="readerRetryButton" class="text-button reader-retry hidden" type="button">
+        重新检测
+      </button>
+    </section>
+  </main>
+
+  <dialog id="coverDialog" class="cover-dialog">
+    <div class="dialog-heading">
+      <div>
+        <p class="eyebrow">COVER</p>
+        <h2 id="coverDialogTitle">选择封面</h2>
+      </div>
+      <button id="closeCoverDialog" class="icon-button" type="button" aria-label="关闭">×</button>
+    </div>
+    <div id="coverOptionGrid" class="cover-option-grid"></div>
+    <p id="coverDialogMessage" class="view-message hidden"></p>
+    <div class="dialog-actions">
+      <button id="coverPrev" class="text-button" type="button">上一组</button>
+      <button id="coverNext" class="text-button" type="button">下一组</button>
+      <button id="coverReset" class="text-button danger-button" type="button">恢复默认封面</button>
+    </div>
+  </dialog>
+
+  <dialog id="categoryDialog" class="cover-dialog category-dialog">
+    <div class="dialog-heading">
+      <div>
+        <p class="eyebrow">CATEGORIES</p>
+        <h2>全部分类</h2>
+      </div>
+      <button id="closeCategoryDialog" class="icon-button" type="button" aria-label="关闭">×</button>
+    </div>
+    <p class="summary">按关联漫画总数从多到少排序。屏蔽只会关闭该分类的筛选入口，不会隐藏或删除漫画。</p>
+    <div class="category-sections">
+      <section class="category-section valid-section">
+        <div class="category-section-heading">
+          <h3>有效分类 <span id="validCategoryCount">0</span></h3>
+          <button id="blockModeButton" class="text-button" type="button">屏蔽操作</button>
+        </div>
+        <div id="validCategoryList" class="category-chip-list"></div>
+      </section>
+
+      <section class="category-section blocked-section">
+        <div class="category-section-heading">
+          <h3>屏蔽分类 <span id="blockedCategoryCount">0</span></h3>
+          <button id="restoreModeButton" class="text-button" type="button">有效操作</button>
+        </div>
+        <div id="blockedCategoryList" class="category-chip-list"></div>
+      </section>
+    </div>
+    <p id="categoryDialogMessage" class="view-message hidden"></p>
+  </dialog>
+
+  <div id="toast" class="toast hidden" role="status"></div>
+  <script src="/static/app.js" defer></script>
+</body>
+</html>
