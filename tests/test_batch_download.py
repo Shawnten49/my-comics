@@ -450,6 +450,7 @@ class BatchDownloadTest(unittest.TestCase):
             self.library,
             project_root=self.base,
             crawler_runner=fake_runner,
+            cdp_ensurer=lambda cdp_url: False,
         )
         worker.start()
         worker.notify()

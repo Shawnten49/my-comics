@@ -59,8 +59,11 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 try:
+    from comic_web.chrome_cdp import ChromeCDPError, ensure_chrome_cdp
     from comic_web.runtime_settings import load_runtime_defaults
 except ImportError:
+    ChromeCDPError = RuntimeError
+    ensure_chrome_cdp = None
     load_runtime_defaults = None
 
 
@@ -364,7 +367,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--profile-dir",
         type=Path,
-        default=Path.home() / ".cache" / "web-image-crawler-cdp-profile",
+        default=Path(
+            os.environ.get(
+                "COMIC_CHROME_PROFILE_DIR",
+                str(Path.home() / ".comic-chrome-profile"),
+            )
+        ).expanduser(),
         help="登录状态和 Cookie 使用的独立 Chrome 用户目录",
     )
     parser.add_argument(
@@ -2365,6 +2373,14 @@ def open_context(
     args: argparse.Namespace,
 ) -> BrowserSession:
     if args.cdp_url:
+        if ensure_chrome_cdp is not None:
+            try:
+                ensure_chrome_cdp(
+                    args.cdp_url,
+                    profile_dir=args.profile_dir,
+                )
+            except ChromeCDPError as exc:
+                raise RuntimeError(str(exc)) from exc
         browser = playwright.chromium.connect_over_cdp(args.cdp_url)
         if not browser.contexts:
             raise RuntimeError("已连接到 Chrome，但没有可用的浏览器上下文")

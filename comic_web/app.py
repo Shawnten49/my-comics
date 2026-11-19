@@ -31,6 +31,7 @@ try:
     from .book_repository import BookRepository
     from .batch_download_repository import BatchDownloadRepository
     from .batch_download_worker import BatchDownloadWorker
+    from .chrome_cdp import ChromeCDPError, ensure_chrome_cdp
     from .database import Database
     from .deletion_repository import DeletionError, DeletionRepository
     from .deletion_worker import DeletionWorker
@@ -59,6 +60,7 @@ except ImportError:
     from book_repository import BookRepository
     from batch_download_repository import BatchDownloadRepository
     from batch_download_worker import BatchDownloadWorker
+    from chrome_cdp import ChromeCDPError, ensure_chrome_cdp
     from database import Database
     from deletion_repository import DeletionError, DeletionRepository
     from deletion_worker import DeletionWorker
@@ -2671,6 +2673,12 @@ def main() -> int:
     except (OSError, SettingsError) as exc:
         print(f"启动失败：无法加载数据库配置：{exc}", file=sys.stderr)
         return 2
+    try:
+        launched = ensure_chrome_cdp(cdp_url)
+        if launched:
+            print("检测到 CDP 未启动，已自动启动专用 Chrome。")
+    except ChromeCDPError as exc:
+        print(f"警告：{exc}", file=sys.stderr)
     lan_mode = bool(args.lan)
     use_https = False
     tls_cert = args.tls_cert

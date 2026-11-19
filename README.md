@@ -211,7 +211,8 @@ http://127.0.0.1:8767/login
 
 下载任务使用 Chrome DevTools Protocol 控制浏览器。
 
-推荐使用独立 Chrome Profile：
+网站启动时以及每次下载任务执行前都会检测 CDP 端口。如果本机
+`http://127.0.0.1:9222` 未运行，会自动启动：
 
 ```bash
 open -na "Google Chrome" --args \
@@ -219,7 +220,14 @@ open -na "Google Chrome" --args \
   --user-data-dir="$HOME/.comic-chrome-profile"
 ```
 
-首次使用时可在这个 Chrome 中完成站点登录或 Cloudflare 人工验证。
+专用 Chrome Profile 可通过环境变量覆盖：
+
+```bash
+export COMIC_CHROME_PROFILE_DIR="$HOME/.comic-chrome-profile"
+```
+
+Chrome 启动后，脚本会等待 `/json/version` 就绪，再继续连接 CDP。
+站点需要登录或 Cloudflare 验证时，脚本仍会等待页面中的验证流程完成。
 
 默认 CDP 地址：
 

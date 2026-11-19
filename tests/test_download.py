@@ -258,6 +258,7 @@ class DownloadManagementTest(unittest.TestCase):
             self.library,
             project_root=base,
             crawler_runner=fake_runner,
+            cdp_ensurer=lambda cdp_url: False,
         )
         created = self.repository.create_task(
             "201",
@@ -355,6 +356,7 @@ class DownloadManagementTest(unittest.TestCase):
             self.library,
             project_root=base,
             crawler_runner=fake_runner,
+            cdp_ensurer=lambda cdp_url: False,
         )
         self.repository.recrawl_task(created["task_id"])
         worker.start()

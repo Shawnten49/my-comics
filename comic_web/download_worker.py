@@ -13,6 +13,7 @@ from typing import Callable, List, Optional
 
 try:
     from .book_repository import BookRepository
+    from .chrome_cdp import ChromeCDPError, ensure_chrome_cdp
     from .crawler_lock import crawler_lock
     from .download_repository import DownloadRepository
     from .download_root import DownloadRootError
@@ -21,6 +22,7 @@ try:
     from .thumbnails import ThumbnailCache
 except ImportError:
     from book_repository import BookRepository
+    from chrome_cdp import ChromeCDPError, ensure_chrome_cdp
     from crawler_lock import crawler_lock
     from download_repository import DownloadRepository
     from download_root import DownloadRootError
@@ -44,6 +46,7 @@ class DownloadWorker:
         crawler_runner: Optional[
             Callable[[dict, Callable[[str], None], threading.Event], int]
         ] = None,
+        cdp_ensurer: Optional[Callable[[str], bool]] = None,
         sleep_inhibitor: Optional[SleepInhibitor] = None,
         book_repository: Optional[BookRepository] = None,
         thumbnails: Optional[ThumbnailCache] = None,
@@ -54,6 +57,7 @@ class DownloadWorker:
         self.lock_path = lock_path
         self.crawler_lock_path = crawler_lock_path
         self.crawler_runner = crawler_runner or self._run_crawler
+        self.cdp_ensurer = cdp_ensurer or ensure_chrome_cdp
         self.sleep_inhibitor = sleep_inhibitor
         self.books = book_repository or BookRepository(
             library.database,
@@ -140,6 +144,18 @@ class DownloadWorker:
                 self._lock_handle = None
 
     def _execute(self, task: dict) -> None:
+        try:
+            self.cdp_ensurer(self.repository.cdp_url)
+        except ChromeCDPError as exc:
+            self.repository.update_task(
+                task["id"],
+                status="failed",
+                stage="failed",
+                error_code="cdp_unavailable",
+                error_message=exc.message,
+                finished=True,
+            )
+            return
         try:
             self.repository.validate_output_root()
         except DownloadRootError as exc:

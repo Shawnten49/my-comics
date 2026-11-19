@@ -15,6 +15,7 @@ try:
     from .book_repository import BookRepository
     from .batch_download_repository import BatchDownloadRepository
     from .crawler_lock import crawler_lock
+    from .chrome_cdp import ChromeCDPError, ensure_chrome_cdp
     from .download_root import DownloadRootError
     from .indexer import ComicLibrary
     from .sleep_inhibitor import SleepInhibitor
@@ -23,6 +24,7 @@ except ImportError:
     from book_repository import BookRepository
     from batch_download_repository import BatchDownloadRepository
     from crawler_lock import crawler_lock
+    from chrome_cdp import ChromeCDPError, ensure_chrome_cdp
     from download_root import DownloadRootError
     from indexer import ComicLibrary
     from sleep_inhibitor import SleepInhibitor
@@ -44,6 +46,7 @@ class BatchDownloadWorker:
         crawler_runner: Optional[
             Callable[[dict, Callable[[str], None], threading.Event], int]
         ] = None,
+        cdp_ensurer: Optional[Callable[[str], bool]] = None,
         sleep_inhibitor: Optional[SleepInhibitor] = None,
         book_repository: Optional[BookRepository] = None,
         thumbnails: Optional[ThumbnailCache] = None,
@@ -58,6 +61,7 @@ class BatchDownloadWorker:
             or "http://127.0.0.1:9222"
         )
         self.crawler_runner = crawler_runner or self._run_crawler
+        self.cdp_ensurer = cdp_ensurer or ensure_chrome_cdp
         self.sleep_inhibitor = sleep_inhibitor
         self.books = book_repository or BookRepository(
             library.database,
@@ -144,6 +148,22 @@ class BatchDownloadWorker:
                 self.current_task_id = None
 
     def _execute(self, task: dict) -> None:
+        try:
+            self.cdp_ensurer(self.cdp_url)
+        except ChromeCDPError as exc:
+            self.repository.update_task(
+                task["id"],
+                status="failed",
+                stage="failed",
+                error_code="cdp_unavailable",
+                error_message=exc.message,
+                finished=True,
+            )
+            try:
+                self.repository.sync_incremental_progress(task["id"])
+            except Exception:
+                pass
+            return
         try:
             self.repository.validate_output_root()
         except DownloadRootError as exc:
